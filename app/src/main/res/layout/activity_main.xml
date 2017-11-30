@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context="com.idatachina.www.osupdatehelper.MainActivity">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:text="系统升级助手"
+        android:textStyle="bold"
+        android:padding="20dp"
+        android:gravity="center"
+        android:textColor="#ffffff"
+        android:textSize="24dp"
+        android:background="@color/colorPrimary"
+        android:layout_height="wrap_content" />
+    <ScrollView android:layout_height="match_parent" android:layout_width="match_parent"
+        android:scrollbars="none"
+        xmlns:android="http://schemas.android.com/apk/res/android">
+    <LinearLayout
+        xmlns:tools="http://schemas.android.com/tools"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_marginTop="10dp"
+        android:paddingRight="10dp"
+        android:paddingLeft="10dp"
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:text="SN："
+            android:layout_height="wrap_content" />
+
+        <TextView
+            android:id="@+id/deviceSn"
+            android:layout_weight="3"
+            android:layout_width="wrap_content"
+            android:gravity="right"
+            android:textAlignment="gravity"
+            android:layout_height="wrap_content" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_marginTop="10dp"
+        android:paddingRight="10dp"
+        android:paddingLeft="10dp"
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:text="机型："
+            android:layout_height="wrap_content" />
+
+        <TextView
+            android:id="@+id/deviceType"
+            android:layout_weight="3"
+            android:layout_width="wrap_content"
+            android:gravity="right"
+            android:textAlignment="gravity"
+            android:layout_height="wrap_content" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_marginTop="10dp"
+        android:paddingRight="10dp"
+        android:paddingLeft="10dp"
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:text="当前系统版本："
+            android:layout_height="wrap_content" />
+
+        <TextView
+            android:id="@+id/osVersion"
+            android:layout_weight="3"
+            android:layout_width="wrap_content"
+            android:gravity="right"
+            android:textAlignment="gravity"
+            android:layout_height="wrap_content" />
+
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/updateButton"
+        android:layout_margin="10dp"
+        android:text="升级"
+        android:background="#A9A9A9"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <LinearLayout
+        android:id="@+id/updateTipLayout"
+        android:padding="10dp"
+        android:orientation="horizontal"
+        android:textAlignment="center"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <TextView
+        android:id="@+id/updateTimeCountTip"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="16px"
+        android:textAlignment="center"
+        android:text="60S后将重启并执行升级！"
+        />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/updateLayout"
+        android:layout_margin="10dp"
+        android:orientation="horizontal"
+        android:textAlignment="center"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <Button
+            android:id="@+id/nowUpdateButton"
+            android:text="立即升级"
+            android:layout_marginRight="5dp"
+            android:textColor="#696969"
+            android:background="#32CD32"
+            android:layout_height="wrap_content"
+            android:layout_weight=".5"
+            android:layout_width="0dp"/>
+        <Button
+            android:id="@+id/cancelButton"
+            android:text="稍后升级"
+            android:layout_marginLeft="5dp"
+            android:textColor="#696969"
+            android:background="#A9A9A9"
+            android:layout_height="wrap_content"
+            android:layout_weight=".4"
+            android:layout_width="0dp"/>
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/noTaskInfo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingRight="10dp"
+        android:paddingLeft="10dp"
+        android:textSize="18dp"
+        android:textAlignment="center"
+        android:text="已是最新版本"
+        />
+
+    <TextView
+        android:id="@+id/updatePackageInfo"
+        android:layout_width="wrap_content"
+        android:paddingRight="10dp"
+        android:paddingLeft="10dp"
+        android:textSize="18dp"
+        android:textStyle="bold"
+        android:text="更新包信息"
+        android:layout_height="wrap_content" />
+    <View
+        android:id="@+id/updatePackageSplitLine"
+        android:layout_width="fill_parent"
+        android:layout_height="2px"
+        android:layout_marginRight="10dp"
+        android:layout_marginLeft="10dp"
+        android:background="#ccc"  />
+
+    <LinearLayout
+        android:id="@+id/fileNameLayout"
+        android:layout_marginTop="10dp"
+        android:paddingRight="10dp"
+        android:paddingLeft="10dp"
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:text="更新包名称："
+            android:layout_height="wrap_content" />
+
+        <TextView
+            android:id="@+id/fileName"
+            android:layout_weight="3"
+            android:layout_width="wrap_content"
+            android:gravity="right"
+            android:textAlignment="gravity"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
+    <LinearLayout
+        android:id="@+id/fileSizeLayout"
+        android:orientation="horizontal"
+        android:layout_marginTop="10dp"
+        android:paddingRight="10dp"
+        android:paddingLeft="10dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:text="更新包大小："
+            android:layout_height="wrap_content" />
+
+        <TextView
+            android:id="@+id/fileSize"
+            android:layout_weight="3"
+            android:layout_width="wrap_content"
+            android:gravity="right"
+            android:textAlignment="gravity"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
+    <LinearLayout
+        android:id="@+id/targetVersionLayout"
+        android:layout_marginTop="10dp"
+        android:paddingRight="10dp"
+        android:paddingLeft="10dp"
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:text="更新包版本："
+            android:layout_height="wrap_content" />
+
+        <TextView
+            android:id="@+id/targetVersion"
+            android:layout_weight="3"
+            android:layout_width="0dp"
+            android:gravity="right"
+            android:textAlignment="gravity"
+            android:layout_height="wrap_content" />
+
+    </LinearLayout>
+    <TextView
+        android:id="@+id/updateLogTitle"
+        android:layout_marginTop="10dp"
+        android:paddingRight="10dp"
+        android:paddingLeft="10dp"
+        android:layout_width="wrap_content"
+        android:text="更新日志："
+        android:layout_height="wrap_content" />
+    <TextView
+        android:id="@+id/updateLog"
+        android:layout_marginTop="5dp"
+        android:paddingRight="10dp"
+        android:paddingLeft="10dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>
