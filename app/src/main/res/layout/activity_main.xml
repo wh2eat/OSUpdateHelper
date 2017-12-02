@@ -99,7 +99,7 @@
     <Button
         android:id="@+id/updateButton"
         android:layout_margin="10dp"
-        android:text="升级"
+        android:text="@string/check"
         android:background="#A9A9A9"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />

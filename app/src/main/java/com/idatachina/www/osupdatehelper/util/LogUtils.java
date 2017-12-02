@@ -1,4 +1,4 @@
-package com.idatachina.www.osupdatehelper;
+package com.idatachina.www.osupdatehelper.util;
 
 import android.util.Log;
 

@@ -1,4 +1,4 @@
-package com.idatachina.www.osupdatehelper;
+package com.idatachina.www.osupdatehelper.util;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -10,6 +10,8 @@ import android.content.SharedPreferences;
 public class PreferencesUtils {
 
     private final static String pref_name="OSUpdatePrefsFile";
+
+    private final static String MAIN_SERVICE_RUN_MILLIS="MainServiceRunMillis";
 
     public static void setUpdateOsVersion(Context context,String version){
         SharedPreferences settings = context.getSharedPreferences(pref_name, 0);
@@ -42,23 +44,22 @@ public class PreferencesUtils {
         return settings.getBoolean("isFirstStart", false);
     }
 
-    public static void clearRunUpdateMillis(Context context){
+    public static void clearMainServiceRunMillis(Context context){
         SharedPreferences settings = context.getSharedPreferences(pref_name, 0);
         SharedPreferences.Editor editor = settings.edit();
-        editor.remove("runUpdateMillis");
+        editor.remove(PreferencesUtils.MAIN_SERVICE_RUN_MILLIS);
         editor.commit();
     }
 
-    public static long getRunUpdateMillis(Context context){
+    public static long getMainServiceRunMillis(Context context){
         SharedPreferences settings = context.getSharedPreferences(pref_name, 0);
-        return settings.getLong("runUpdateMillis", -1l);
+        return settings.getLong(PreferencesUtils.MAIN_SERVICE_RUN_MILLIS, -1l);
     }
 
-    public static void setRunUpdateMillis(Context context,long millis){
+    public static void setMainServiceRunMillis(Context context,long millis){
         SharedPreferences settings = context.getSharedPreferences(pref_name, 0);
         SharedPreferences.Editor editor = settings.edit();
-        editor.putLong("runUpdateMillis",millis);
+        editor.putLong(PreferencesUtils.MAIN_SERVICE_RUN_MILLIS,millis);
         editor.commit();
     }
-
 }

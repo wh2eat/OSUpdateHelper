@@ -1,27 +1,29 @@
 package com.idatachina.www.osupdatehelper;
 
-import android.app.AlarmManager;
+import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.PendingIntent;
+import android.app.Application;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.SystemClock;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.idatachina.www.osupdatehelper.util.AlarmServiceUtils;
+import com.idatachina.www.osupdatehelper.util.FileUtils;
+import com.idatachina.www.osupdatehelper.util.LogUtils;
+import com.idatachina.www.osupdatehelper.util.OsUtils;
+import com.idatachina.www.osupdatehelper.util.PreferencesUtils;
+
 import java.io.File;
-import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -31,14 +33,12 @@ public class MainActivity extends AppCompatActivity {
 
     private GetDeviceInfo deviceInfo;
 
-    String osDirPath="/osupdate";
-
-    public final static String REQUEST = "extra.mdm.request";
-    public final static String RESPONE = "extra.mdm.respone";
 
     private Integer updateOsStatus = 0;//-1：没有任务；1：等待下载；2：下载中；3：下载成功
 
     private Integer chooseDelayStatus = 0;//0：没有选择；1:正在选择
+
+    private Integer checkUpdate = 0;
 
     int parseType = 1;
 
@@ -166,18 +166,17 @@ public class MainActivity extends AppCompatActivity {
         updateButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                //sendBroadcast4UpdateOS(updatePackageList.get(0));
-                if (-1==updateOsStatus){
-                    //没有更新包，检测更新包
-                }else if(1==updateOsStatus){
-                    //等待下载
-                }else if (2==updateOsStatus){
-                    //下载中，请稍等
-                }else if (3==updateOsStatus){
-                    //下载完成。
-                }else if(9==updateOsStatus){
-                    //升级成功
-                }
+                checkUpdate = 1;
+                LogUtils.debug("[][][checkUpdate:"+checkUpdate+"]");
+                updateButton.setText(R.string.checking);
+                updateButton.setEnabled(false);
+                LogUtils.debug(updateButton.getText().toString());
+                handler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        OsUpdateChecker.getInstance().check(getInstance(),null);
+                    }
+                },3*1000);
             }
         });
 
@@ -213,7 +212,7 @@ public class MainActivity extends AppCompatActivity {
         alertDialogBuilder.setIcon(null);
         alertDialogBuilder.setTitle("请选择延长时间");
         alertDialogBuilder.setMessage(null);
-        alertDialogBuilder.setItems(new String[]{"1个小时后", "2个小时后", "3个小时后", "4个小时后","5个小时后"}, new DialogInterface.OnClickListener() {
+        alertDialogBuilder.setItems(new String[]{"1个小时后", "2个小时后", "3个小时后", "4个小时后"}, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 LogUtils.debug("[][][which:"+which+"]");
@@ -237,32 +236,17 @@ public class MainActivity extends AppCompatActivity {
         dialog.show();
     }
 
-    private void delayRunUpdate(int times){
+    private void delayRunUpdate(int hours){
         if (null!=timeRunnable){
             LogUtils.info("[][][delayRunUpdate,stop auto time tip.]");
             timeRunnable.stop();
             timeRunnable = null;
         }
         LogUtils.debug("[][][update file not finish download,start auto check.]");
-        AlarmManager manager = (AlarmManager) getSystemService(ALARM_SERVICE);
-        Intent i = new Intent();
-        i.setClass(_this,AlarmReceiver.class);
-        PendingIntent pi = PendingIntent.getBroadcast(_this, 0, i, 0);
-
-        long delayMillis = PreferencesUtils.getRunUpdateMillis(getInstance());
-        if (delayMillis!=-1){
-            LogUtils.debug("[][][cancel old delay:"+delayMillis+"]");
-            manager.cancel(pi);
-        }
-
-        long millis = SystemClock.elapsedRealtime() + times*60*1000;
-        PreferencesUtils.setRunUpdateMillis(getInstance(),millis);
-        manager.set(AlarmManager.ELAPSED_REALTIME_WAKEUP,millis,pi);
-
-        updateTipView.setText(times+"小时后执行升级");
-
-        LogUtils.info("[][][after "+times+" hours ,system to run update.]");
-
+        long millis = SystemClock.elapsedRealtime() + hours*OsUpdateChecker.TIME_UNIT;
+        AlarmServiceUtils.addRunMainServiceIntent(_this,millis);
+        updateTipView.setText(hours+"小时后执行升级");
+        LogUtils.info("[][][after "+hours+" hours ,system to run update.]");
     }
 
     //显示错误提示
@@ -277,6 +261,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(DialogInterface dialogInterface, int i) {
                 LogUtils.debug("[][][click ok]");
+                OsUpdateChecker.getInstance().check(_this,null);
             }
         });
         alertDialogBuilder.setNegativeButton(null,null);
@@ -315,16 +300,8 @@ public class MainActivity extends AppCompatActivity {
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
-                File osFile = new File(Environment.getExternalStorageDirectory().getPath()+osDirPath+"/"+updatePackageName);
-                if (osFile.exists()){
-                    boolean rs = osFile.delete();
-                    LogUtils.debug("[][][delete:"+osFile.getPath()+","+rs+"]");
-                }
-                File updateFile = new File(Environment.getExternalStorageDirectory().getPath()+osDirPath+"/update.txt");
-                if (updateFile.exists()){
-                    boolean rs = updateFile.delete();
-                    LogUtils.debug("[][][delete:"+updateFile.getPath()+","+rs+"]");
-                }
+                OsUpdateChecker.getInstance().deleteUpdateDescriberFile();
+                OsUpdateChecker.getInstance().deleteUpdatePackageFile(updatePackageName);
                 dialog.dismiss();
                 LogUtils.debug("[][][update success]");
             }
@@ -364,6 +341,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(DialogInterface dialogInterface, int i) {
                 LogUtils.debug("[][][click cancel]");
+                OsUpdateChecker.getInstance().check(_this,null);
             }
         });
 
@@ -376,31 +354,11 @@ public class MainActivity extends AppCompatActivity {
     private void startUpdate(){
         Toast.makeText(getApplicationContext(),"即将重启并执行更新！",Toast.LENGTH_LONG).show();
         PreferencesUtils.setUpdateOsVersion(getInstance(),updatePackageVersion);
-        String updatePackageFilePath = Environment.getExternalStorageDirectory()+osDirPath+"/"+updatePackageName;
+        String updatePackageFilePath = Environment.getExternalStorageDirectory()+"/"+OsUpdateChecker.OS_STORE_DIR_NAME+"/"+updatePackageName;
         if (2==parseType){
             updatePackageFilePath = updatePackageFilePath.replace("emulated/","sdcard");
         }
-        LogUtils.debug("[][startUpdate]["+updatePackageFilePath+"]");
-        sendBroadcast4UpdateOS(updatePackageFilePath);
-    }
-
-    public final static int CMD_FOTA_UPDATE_OS = 0x0101;
-
-    private  void sendBroadcast4UpdateOS(String filePath){
-        Intent _intent = new Intent(REQUEST);
-
-        _intent.putExtra("Timestamp", System.currentTimeMillis());
-        _intent.putExtra("Cmd", CMD_FOTA_UPDATE_OS);
-
-        int osType = 1;
-        if (filePath.endsWith("_diff.zip")){
-            osType=2;
-        }
-        _intent.putExtra("Type", osType);
-        _intent.putExtra("Path", filePath);
-
-        this.sendBroadcast(_intent);
-        LogUtils.debug("send update os broadcast,os path:"+filePath);
+        OsUtils.sendBroadcast4UpdateOS(getInstance(),updatePackageFilePath);
     }
 
     private void setViewDisplay(boolean hasTask){
@@ -411,7 +369,7 @@ public class MainActivity extends AppCompatActivity {
 
     class TimeRunnable implements  Runnable {
 
-        int ts = 60;
+        int ts = 180;
 
         private boolean stop=false;
 
@@ -480,18 +438,26 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public  void setUpdateInfo(){
+        setUpdateInfo(null,-1,-1,null,null);
+    }
+
     public  void setUpdateInfo(String fileName,long fileSize,long downloadFileSize,String targetVersion,String updateLog){
+        if (1==checkUpdate){
+            checkUpdate = 0;
+            updateButton.setText("检测更新");
+            updateButton.setEnabled(true);
+        }
+
         if (null==targetVersion){
             noTaskInfoView.setText("已是最新版本!");
             setViewDisplay(false);
             updateOsStatus=-1;
-            updateButton.setText("检测更新");
             LogUtils.debug("[][][not update package]");
             return;
         }
 
         updatePackageName = fileName;
-        updateButton.setText("升级");
 
         if (targetVersion.toLowerCase().equals(deviceSystemVersion)){
             LogUtils.debug("[][setUpdateInfo][os update success]");
@@ -504,16 +470,16 @@ public class MainActivity extends AppCompatActivity {
 
         updatePackageVersion = targetVersion;
 
-        String displaySize = getDisplaySize(fileSize);
+        String displaySize = FileUtils.getDisplaySize(fileSize);
         if (null!=displaySize){
             if (fileSize==downloadFileSize){
                 displaySize+=" / 已下载完成";
                 updateOsStatus = 3;
-            }else if(downloadFileSize==0){
+            }else if(downloadFileSize==0||downloadFileSize==-1){
                 displaySize+=" / 等待下载";
                 updateOsStatus = 1;
             }else{
-                displaySize+=" / "+getDisplaySize(downloadFileSize)+"，"+(String.format("%.2f", ((downloadFileSize*100.00)/fileSize)))+"%";
+                displaySize+=" / "+ FileUtils.getDisplaySize(downloadFileSize)+"，"+(String.format("%.2f", ((downloadFileSize*100.00)/fileSize)))+"%";
                 updateOsStatus = 2;
             }
             fileSizeView.setText(displaySize);
@@ -532,21 +498,34 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private String getDisplaySize(long size){
-        DecimalFormat formater = new DecimalFormat("####.00");
-        if(size<1024){
-            return size+"bytes";
-        }else if(size<1024*1024){
-            float kbsize = size/1024f;
-            return formater.format(kbsize)+"KB";
-        }else if(size<1024*1024*1024){
-            float mbsize = size/1024f/1024f;
-            return formater.format(mbsize)+"MB";
-        }else if(size<1024*1024*1024*1024){
-            float gbsize = size/1024f/1024f/1024f;
-            return formater.format(gbsize)+"GB";
-        }else{
-            return null;
+
+    private void stopTimeCountDown(){
+        if (null!=timeRunnable){
+            timeRunnable.stop();
+            timeRunnable = null;
+            LogUtils.info("[][][activity stop,stop count down]");
         }
     }
+
+    @Override
+    protected void onStop() {
+        LogUtils.debug("[MainActivity][onStop][]");
+        stopTimeCountDown();
+        super.onStop();
+    }
+
+    @Override
+    protected void onPostResume() {
+        super.onPostResume();
+        LogUtils.debug("[MainActivity][onPostResume][]");
+        OsUpdateChecker.getInstance().check(_this,null);
+    }
+
+    @Override
+    protected void onDestroy() {
+        LogUtils.debug("[MainActivity][onDestroy][]");
+        stopTimeCountDown();
+        super.onDestroy();
+    }
+
 }

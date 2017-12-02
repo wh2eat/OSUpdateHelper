@@ -1,16 +1,20 @@
-package com.idatachina.www.osupdatehelper;
+package com.idatachina.www.osupdatehelper.receiver;
 
-import android.app.Notification;
-import android.app.NotificationManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+
+import com.idatachina.www.osupdatehelper.MainService;
+import com.idatachina.www.osupdatehelper.util.LogUtils;
 
 /**
  * Created by wanghang on 2017/11/29.
  */
 
 public class AlarmReceiver extends BroadcastReceiver {
+
+    public final static String RUN_MAIN_SERVICE_COMMAND="RunMainService";
+
     @Override
     public void onReceive(Context context, Intent intent) {
         //设置通知内容并在onReceive()这个函数执行时开启
@@ -20,11 +24,13 @@ public class AlarmReceiver extends BroadcastReceiver {
         //notification.defaults = Notification.DEFAULT_ALL;
         //manager.notify(1, notification);
 
-        LogUtils.debug("[AlarmReceiver][][action:"+intent.getAction()+"]");
-
-        //再次开启LongRunningService这个服务，从而可以
-        Intent i = new Intent(context, MainService.class);
-        i.setAction("auto");
-        context.startService(i);
+        String action = intent.getAction();
+        LogUtils.debug("[AlarmReceiver][][action:"+action+"]");
+        if (RUN_MAIN_SERVICE_COMMAND.equals(action)){
+            //再次开启这个服务，从而可以
+            Intent i = new Intent(context, MainService.class);
+            i.setAction(MainService.AUTO_START_COMMAND);
+            context.startService(i);
+        }
     }
 }
