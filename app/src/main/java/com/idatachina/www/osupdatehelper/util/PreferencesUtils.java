@@ -13,6 +13,10 @@ public class PreferencesUtils {
 
     private final static String MAIN_SERVICE_RUN_MILLIS="MainServiceRunMillis";
 
+    private final static String EXECUTE_STATUS="executeStatus";
+
+    private final static String RECEIVE_BOOT_STATUS="receiveBootStatus";
+
     public static void setUpdateOsVersion(Context context,String version){
         SharedPreferences settings = context.getSharedPreferences(pref_name, 0);
         SharedPreferences.Editor editor = settings.edit();
@@ -62,4 +66,43 @@ public class PreferencesUtils {
         editor.putLong(PreferencesUtils.MAIN_SERVICE_RUN_MILLIS,millis);
         editor.commit();
     }
+
+    public static int getExecuteStatus(Context context){
+        SharedPreferences settings = context.getSharedPreferences(pref_name, 0);
+        return settings.getInt(PreferencesUtils.EXECUTE_STATUS,0);
+    }
+
+    public static void setExecuteStatus(Context context,int status){
+        SharedPreferences settings = context.getSharedPreferences(pref_name, 0);
+        SharedPreferences.Editor editor = settings.edit();
+        editor.putInt(PreferencesUtils.EXECUTE_STATUS,status);
+        editor.commit();
+    }
+
+    public static void receiveBootStatus(Context context){
+        SharedPreferences settings = context.getSharedPreferences(pref_name, 0);
+        SharedPreferences.Editor editor = settings.edit();
+        editor.putInt(PreferencesUtils.RECEIVE_BOOT_STATUS,1);
+        editor.commit();
+    }
+
+    public static boolean hasReceiveBootStatus(Context context){
+        int status = getReceiveBootStatus(context);
+        if(1==status){
+            return true;
+        }
+        return false;
+    }
+
+    private static int getReceiveBootStatus(Context context){
+        SharedPreferences settings = context.getSharedPreferences(pref_name, 0);
+        return settings.getInt(PreferencesUtils.RECEIVE_BOOT_STATUS,0);
+    }
+
+
+
+
+
+
+
 }

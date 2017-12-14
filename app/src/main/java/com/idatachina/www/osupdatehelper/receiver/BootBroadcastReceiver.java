@@ -14,16 +14,16 @@ import com.idatachina.www.osupdatehelper.util.PreferencesUtils;
 
 public class BootBroadcastReceiver extends BroadcastReceiver {
 
-    public  final static  String boot_action="android.intent.action.BOOT_COMPLETED";
+    public  final static  String boot_action="android.intent.action.boot_completed";
 
     @Override
     public void onReceive(Context context, Intent intent) {
-
-        if (intent.getAction().equals(boot_action)){
+        String action=intent.getAction();
+        LogUtils.debug("[][][system finsih boot,action:"+intent.getAction()+"]");
+        if (boot_action.equals(action.toLowerCase())){
+            PreferencesUtils.receiveBootStatus(context);
             LogUtils.debug("[][][system finsih boot]");
-
             PreferencesUtils.clearMainServiceRunMillis(context);
-
             //启动服务
             Intent startIntent = new Intent(context,MainService.class);
             startIntent.setAction(MainService.AUTO_START_COMMAND);

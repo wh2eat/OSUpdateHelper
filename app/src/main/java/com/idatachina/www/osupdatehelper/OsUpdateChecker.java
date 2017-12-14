@@ -40,9 +40,13 @@ public class OsUpdateChecker {
 
     public final  static  String OS_STORE_DIR_NAME = "osupdate";
 
+    public final  static  String SECOND_OS_STORE_DIR_NAME = "sdcard/osupdate";
+
     public final  static  String OS_UPDATE_DESCRIBER_FILE_NAME = "update.txt";
 
-    public final static  long TIME_UNIT = 60*60*1000;//分钟
+    public final static  long TIME_UNIT_MINUTE = 1*60*1000;//分钟
+
+    public final static  long TIME_UNIT_HOUR = 60*TIME_UNIT_MINUTE;//小时
 
     public void check(Context context,String action){
         OsUpdateDescriber describer = OsUpdateChecker.getInstance().checkUpdateDescriberFile();
@@ -81,7 +85,7 @@ public class OsUpdateChecker {
     }
 
     private void autoRunCheckService(Context context , int hour){
-        long nextRunTimeMillis = SystemClock.elapsedRealtime()+hour*TIME_UNIT;
+        long nextRunTimeMillis = SystemClock.elapsedRealtime()+hour*TIME_UNIT_HOUR;
         AlarmServiceUtils.addRunMainServiceIntent(context,nextRunTimeMillis);
     }
 
@@ -117,11 +121,40 @@ public class OsUpdateChecker {
     }
 
     private String getDescriberFilePath(){
-        return Environment.getExternalStorageDirectory().getPath()+"/"+OS_STORE_DIR_NAME+"/"+OS_UPDATE_DESCRIBER_FILE_NAME;
+
+        String firstPath = Environment.getExternalStorageDirectory().getPath()+"/"+OS_STORE_DIR_NAME+"/"+OS_UPDATE_DESCRIBER_FILE_NAME;
+
+        File file = new File(firstPath);
+        if (file.exists()){
+            return  firstPath;
+        }
+
+        String secondPath = Environment.getExternalStorageDirectory().getPath()+"/"+SECOND_OS_STORE_DIR_NAME+"/"+OS_UPDATE_DESCRIBER_FILE_NAME;
+        File secondFile = new File(secondPath);
+        if (secondFile.exists()){
+            return secondPath;
+        }
+
+        return firstPath;
     }
 
     private  String getUpdatePackageFilePath(String fileName){
-        return  Environment.getExternalStorageDirectory().getPath()+"/"+OS_STORE_DIR_NAME+"/"+fileName;
+        //return  Environment.getExternalStorageDirectory().getPath()+"/"+OS_STORE_DIR_NAME+"/"+fileName;
+
+        String firstPath = Environment.getExternalStorageDirectory().getPath()+"/"+OS_STORE_DIR_NAME+"/"+fileName;
+
+        File file = new File(firstPath);
+        if (file.exists()){
+            return  firstPath;
+        }
+
+        String secondPath = Environment.getExternalStorageDirectory().getPath()+"/"+SECOND_OS_STORE_DIR_NAME+"/"+fileName;
+        File secondFile = new File(secondPath);
+        if (secondFile.exists()){
+            return secondPath;
+        }
+
+        return firstPath;
     }
 
     public long getUpdatePackageDownloadSize(String fileName){

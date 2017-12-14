@@ -1,27 +1,15 @@
 package com.idatachina.www.osupdatehelper;
 
-import android.app.AlarmManager;
-import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Environment;
+import android.content.IntentFilter;
 import android.os.Handler;
 import android.os.IBinder;
-import android.os.SystemClock;
 
-import com.idatachina.www.osupdatehelper.receiver.AlarmReceiver;
-import com.idatachina.www.osupdatehelper.util.AlarmServiceUtils;
+import com.idatachina.www.osupdatehelper.receiver.MainServiceBroadcastReceiver;
 import com.idatachina.www.osupdatehelper.util.LogUtils;
-
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import com.idatachina.www.osupdatehelper.util.MdmCommandUtils;
 
 /**
  * Created by wanghang on 2017/11/27.

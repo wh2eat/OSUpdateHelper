@@ -5,6 +5,7 @@ import android.app.AlertDialog;
 import android.app.Application;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Environment;
@@ -17,13 +18,18 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.idatachina.www.osupdatehelper.receiver.MainServiceBroadcastReceiver;
 import com.idatachina.www.osupdatehelper.util.AlarmServiceUtils;
 import com.idatachina.www.osupdatehelper.util.FileUtils;
 import com.idatachina.www.osupdatehelper.util.LogUtils;
+import com.idatachina.www.osupdatehelper.util.MdmCommandUtils;
 import com.idatachina.www.osupdatehelper.util.OsUtils;
 import com.idatachina.www.osupdatehelper.util.PreferencesUtils;
 
 import java.io.File;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -93,6 +99,10 @@ public class MainActivity extends AppCompatActivity {
 
         MainActivity._this = this;
 
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(MdmCommandUtils.RESPONE);
+        registerReceiver(MainServiceBroadcastReceiver.getInstance(),intentFilter);
+
         alertDialogBuilder = new AlertDialog.Builder(this);
 
         setContentView(R.layout.activity_main);
@@ -148,7 +158,8 @@ public class MainActivity extends AppCompatActivity {
         if (deviceSystemVersion.startsWith("a21")){
             String[] array = deviceSystemVersion.split("_");
             if (array.length>1){
-                String lastStr = array[array.length-1];
+                String lastStr = array[1];
+                LogUtils.debug("[][][version:"+lastStr+"]");
                 Pattern numPattern = Pattern.compile("\\d+");
                 Matcher numMatcher = numPattern.matcher(lastStr);
                 if (numMatcher.find()){
@@ -239,11 +250,13 @@ public class MainActivity extends AppCompatActivity {
     private void delayRunUpdate(int hours){
         if (null!=timeRunnable){
             LogUtils.info("[][][delayRunUpdate,stop auto time tip.]");
-            timeRunnable.stop();
+            stopTimeDown = true;
+            handler.removeCallbacks(timeRunnable);
             timeRunnable = null;
         }
         LogUtils.debug("[][][update file not finish download,start auto check.]");
-        long millis = SystemClock.elapsedRealtime() + hours*OsUpdateChecker.TIME_UNIT;
+        long millis = SystemClock.elapsedRealtime() + hours*OsUpdateChecker.TIME_UNIT_HOUR;
+
         AlarmServiceUtils.addRunMainServiceIntent(_this,millis);
         updateTipView.setText(hours+"小时后执行升级");
         LogUtils.info("[][][after "+hours+" hours ,system to run update.]");
@@ -287,6 +300,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showClearSystemTip(){
+
+        LogUtils.debug("[][showClearSystemTip][start]");
+
         alertDialogBuilder.setIcon(null);
         alertDialogBuilder.setTitle("提示");
         alertDialogBuilder.setMessage("\n系统升级成功，即将重启并完成更新！\n\n");
@@ -297,15 +313,87 @@ public class MainActivity extends AppCompatActivity {
         alertDialogBuilder.setCancelable(false);
         final AlertDialog dialog=alertDialogBuilder.create();
         dialog.show();
-        handler.postDelayed(new Runnable() {
+
+        LogUtils.debug("[][showClearSystemTip][clean thread start]");
+
+        new Thread(new Runnable() {
             @Override
             public void run() {
-                OsUpdateChecker.getInstance().deleteUpdateDescriberFile();
-                OsUpdateChecker.getInstance().deleteUpdatePackageFile(updatePackageName);
-                dialog.dismiss();
-                LogUtils.debug("[][][update success]");
+
+                LogUtils.debug("[][showClearSystemTip][clean thread run]");
+
+                int  status = PreferencesUtils.getExecuteStatus(getInstance());
+                if (2==status){
+
+                    PreferencesUtils.setExecuteStatus(getInstance(),3);
+                    runOnUiThread(new Runnable(){
+                        @Override
+                        public void run() {
+                            dialog.setMessage("正在清除iScan数据!\n\n");
+                        }
+                    });
+
+                    String iScanPackageName="com.android.auto.iscan";
+                    MdmCommandUtils.cleanAppData(getInstance(),iScanPackageName);
+                    LogUtils.debug("[][showClearSystemTip][clean iscan data]");
+
+                    runOnUiThread(new Runnable(){
+                        @Override
+                        public void run() {
+                            dialog.setMessage("iScan数据清除完成，即将重启!\n\n");
+                        }
+                    });
+
+
+                    try {
+                        Thread.currentThread().sleep(3*1000);
+                    }catch (Exception e){
+                        LogUtils.error("",e);
+                    }
+
+                    MdmCommandUtils.reboot(getInstance());
+                }else if (3==status){
+                    runOnUiThread(new Runnable(){
+                        @Override
+                        public void run() {
+                            dialog.setMessage("正在清除历史数据!");
+                        }
+                    });
+
+                    OsUpdateChecker.getInstance().deleteUpdateDescriberFile();
+                    OsUpdateChecker.getInstance().deleteUpdatePackageFile(updatePackageName);
+                    LogUtils.debug("[][showClearSystemTip][clean update package&descfile]");
+
+                    try {
+                        Thread.currentThread().sleep(3*1000);
+                    }catch (Exception e){
+                        LogUtils.error("",e);
+                    }
+
+                    runOnUiThread(new Runnable(){
+                        @Override
+                        public void run() {
+                            dialog.setMessage("即将自卸载并完成更新!\n\n");
+                        }
+                    });
+
+                    try {
+                        Thread.currentThread().sleep(3*1000);
+                    }catch (Exception e){
+                        LogUtils.error("",e);
+                    }
+
+                    MdmCommandUtils.uninstallApplication(getInstance(),getPackageName());
+                    LogUtils.debug("[][showClearSystemTip][uninstall myself]");
+
+                    dialog.dismiss();
+                    LogUtils.debug("[][][update success]");
+                }else{
+                    LogUtils.debug("[][][status error]");
+                    //PreferencesUtils.setExecuteStatus(getInstance(),-1);
+                }
             }
-        },5*1000);
+        }).start();
     }
 
     private void showRunUpdateTip(){
@@ -352,13 +440,28 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void startUpdate(){
-        Toast.makeText(getApplicationContext(),"即将重启并执行更新！",Toast.LENGTH_LONG).show();
-        PreferencesUtils.setUpdateOsVersion(getInstance(),updatePackageVersion);
-        String updatePackageFilePath = Environment.getExternalStorageDirectory()+"/"+OsUpdateChecker.OS_STORE_DIR_NAME+"/"+updatePackageName;
-        if (2==parseType){
-            updatePackageFilePath = updatePackageFilePath.replace("emulated/","sdcard");
+
+        if (!PreferencesUtils.hasReceiveBootStatus(getInstance())){
+            LogUtils.debug("[][][app not receive boot broadcat,now reboot.]");
+            Toast.makeText(getApplicationContext(),"系统即将重启，重启后开始升级！",Toast.LENGTH_LONG).show();
+            PreferencesUtils.setExecuteStatus(getInstance(),1);
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    MdmCommandUtils.reboot(getInstance());
+                }
+            },3*1000);
+        }else{
+            LogUtils.debug("[][][app not receive boot broadcat,now reboot.]");
+            PreferencesUtils.setExecuteStatus(getInstance(),2);
+            Toast.makeText(getApplicationContext(),"即将重启并执行更新！",Toast.LENGTH_LONG).show();
+            PreferencesUtils.setUpdateOsVersion(getInstance(),updatePackageVersion);
+            String updatePackageFilePath = Environment.getExternalStorageDirectory()+"/"+OsUpdateChecker.OS_STORE_DIR_NAME+"/"+updatePackageName;
+            if (2==parseType){
+                updatePackageFilePath = updatePackageFilePath.replace("emulated/","sdcard");
+            }
+            OsUtils.sendBroadcast4UpdateOS(getInstance(),updatePackageFilePath);
         }
-        OsUtils.sendBroadcast4UpdateOS(getInstance(),updatePackageFilePath);
     }
 
     private void setViewDisplay(boolean hasTask){
@@ -367,15 +470,12 @@ public class MainActivity extends AppCompatActivity {
 
     private Handler handler = new Handler();
 
+    private boolean stopTimeDown = false;
+
     class TimeRunnable implements  Runnable {
 
         int ts = 180;
 
-        private boolean stop=false;
-
-        public void stop(){
-            this.stop=true;
-        }
 
         public  TimeRunnable(){
 
@@ -383,15 +483,20 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void run() {
-            if (stop){
-                LogUtils.info("[TimeRunnable][][ stop time count down.]");
+            if (stopTimeDown){
+                LogUtils.info("[TimeRunnable][][ "+Thread.currentThread().getName()+",stop time count down.]");
                 return;
             }
+            LogUtils.info("[TimeRunnable][][ "+Thread.currentThread().getName()+",running,times:"+ts+";stopTimeDown:"+stopTimeDown+"]");
             if (0==chooseDelayStatus){
                 updateTipView.setText(ts+"S后将重启并执行升级!");
                 ts--;
                 if (ts==0){
                     LogUtils.debug("[][][time is finish.]");
+                    if (stopTimeDown){
+                        LogUtils.info("[TimeRunnable][][ stop time count down.]");
+                        return;
+                    }
                     startUpdate();
                 }else{
                     handler.postDelayed(this,1000);
@@ -411,9 +516,60 @@ public class MainActivity extends AppCompatActivity {
             updateButton.setVisibility(View.GONE);
             updateLayout.setVisibility(View.VISIBLE);
             if (downloadFinish){
+
+                int executeStatus = PreferencesUtils.getExecuteStatus(getInstance());
+                if (1==executeStatus){
+                    updateTipView.setText("即将重启并开始升级！");
+                    startUpdate();
+                }else{
+                    boolean hasDelayExecute = false;
+
+                    long nextRunMillis = PreferencesUtils.getMainServiceRunMillis(getInstance());
+                    if (nextRunMillis>0){
+                        long diffMillis = nextRunMillis - SystemClock.elapsedRealtime();
+                        LogUtils.debug("[][setViewDisplay][diffMillis:"+diffMillis+"]");
+                        if (diffMillis>0){
+
+                        /*long nowMillis = System.currentTimeMillis();
+                        Date date = new Date(nowMillis+diffMillis);
+                        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+                        String dataStr = dateFormat.format(date);
+                        updateTipView.setText("更新将会于："+dataStr+" 重新开始");*/
+
+                            hasDelayExecute = true;
+
+                            int hours =(int)(diffMillis/OsUpdateChecker.TIME_UNIT_HOUR);
+                            LogUtils.debug("[][][hours:"+hours+"]");
+                            long lessHours = diffMillis%OsUpdateChecker.TIME_UNIT_HOUR;
+                            LogUtils.debug("[][][lessHours:"+lessHours+"]");
+                            int minutes =(int) (lessHours/OsUpdateChecker.TIME_UNIT_MINUTE);
+                            LogUtils.debug("[][][minutes:"+minutes+"]");
+
+                            String tips ="";
+                            if (hours>0){
+                                tips += hours+"小时";
+                            }
+                            if (minutes>0){
+                                tips += minutes+"分钟";
+                            }
+
+                            if (tips!=""){
+                                tips+="后将重新开始!";
+                            }else{
+                                tips+="即将重新开始!";
+                            }
+                            updateTipView.setText(tips);
+                            //LogUtils.debug("[][setViewDisplay]["+tips+"]");
+                        }
+                    }
+
+                    LogUtils.debug("[][setViewDisplay][hasDelayExecute:"+hasDelayExecute+"]");
+
+                    if (!hasDelayExecute){
+                        startTimeCountDown();
+                    }
+                }
                 updateTipLayout.setVisibility(View.VISIBLE);
-                timeRunnable = new TimeRunnable();
-                handler.postDelayed(timeRunnable,1000);
             }else {
                 updateTipLayout.setVisibility(View.GONE);
             }
@@ -499,10 +655,30 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+    private void startTimeCountDown(){
+        if (null!=timeRunnable){
+            stopTimeDown = true;
+            handler.removeCallbacks(timeRunnable);
+            timeRunnable = null;
+        }
+
+        stopTimeDown = false;
+        timeRunnable = new TimeRunnable();
+        handler.postDelayed(timeRunnable,1000);
+
+        LogUtils.info("[][][activity startTimeCountDown]");
+    }
+
+
     private void stopTimeCountDown(){
         if (null!=timeRunnable){
-            timeRunnable.stop();
+            stopTimeDown = true;
+            handler.removeCallbacks(timeRunnable);
             timeRunnable = null;
+
+            long startMilis = SystemClock.elapsedRealtime()+4*OsUpdateChecker.TIME_UNIT_HOUR;
+            AlarmServiceUtils.addRunMainServiceIntent(getInstance(),startMilis);
+
             LogUtils.info("[][][activity stop,stop count down]");
         }
     }
